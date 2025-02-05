@@ -75,14 +75,16 @@ func (rl *RateLimiter) Stop() {
 	rl.cleanup.Stop()
 }
 
-func RateLimitMiddleware(limiter *RateLimiter) Handler {
-	return func(res *Response, req *Request) error {
-		ip := strings.Split((*req.conn).RemoteAddr().String(), ":")[0]
-		if !limiter.Allow(ip) {
-			res.ApiError(429, "Too Many Requests")
-			return errors.New("rate limit exceeded")
-		}
-		return nil
+func RateLimitMiddleware(limiter *RateLimiter) Middleware {
+	return Middleware{
+		Handler: func(res *Response, req *Request) error {
+			ip := strings.Split((*req.conn).RemoteAddr().String(), ":")[0]
+			if !limiter.Allow(ip) {
+				res.ApiError(429, "Too Many Requests")
+				return errors.New("rate limit exceeded")
+			}
+			return nil
+		},
 	}
 }
 
