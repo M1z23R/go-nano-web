@@ -11,23 +11,25 @@ import (
 )
 
 type ServerOptions struct {
-	ReadTimeout    *time.Duration
-	WriteTimeout   *time.Duration
-	CorsOptions    *CorsOptions
-	MaxRequestSize *int64
-	TLSConfig      *tls.Config
+	ReadTimeout     *time.Duration
+	WriteTimeout    *time.Duration
+	CorsOptions     *CorsOptions
+	MaxRequestSize  *int64
+	TLSConfig       *tls.Config
+	SecurityHeaders *bool
 }
 
 type Server struct {
-	addr           string
-	listener       net.Listener
-	Stack          []IStackable
-	EventStreams   map[string]*chan string
-	CorsOptions    *CorsOptions
-	TLSConfig      *tls.Config
-	ReadTimeout    *time.Duration
-	WriteTimeout   *time.Duration
-	MaxRequestSize *int64
+	addr            string
+	listener        net.Listener
+	Stack           []IStackable
+	EventStreams    map[string]*chan string
+	CorsOptions     *CorsOptions
+	TLSConfig       *tls.Config
+	ReadTimeout     *time.Duration
+	WriteTimeout    *time.Duration
+	MaxRequestSize  *int64
+	SecurityHeaders *bool
 }
 
 func NewServer(addr string, options *ServerOptions) *Server {
@@ -52,6 +54,9 @@ func NewServer(addr string, options *ServerOptions) *Server {
 		}
 		if options.TLSConfig != nil {
 			server.TLSConfig = options.TLSConfig
+		}
+		if options.SecurityHeaders != nil {
+			server.SecurityHeaders = options.SecurityHeaders
 		}
 	}
 
@@ -186,7 +191,7 @@ outer:
 
 	if res.EventStream != nil {
 		s.EventStreams[res.EventStream.Identifier] = res.EventStream.Ch
-		res.Headers.Add("X-Accel-Buffering", "no") //ngonanoweb bs
+		res.Headers.Add("X-Accel-Buffering", "no") //nginx bs
 		go res.StreamEvents()
 	} else {
 		res.Done()

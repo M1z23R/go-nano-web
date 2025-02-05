@@ -41,7 +41,6 @@ func (r *Request) parseRequest(conn net.Conn) error {
 	}
 	line = strings.TrimSpace(line)
 
-	//GET /path/subpath HTTP1.1
 	parts := strings.Split(line, " ")
 	if len(parts) < 3 {
 		return fmt.Errorf("invalid request line")
@@ -50,9 +49,6 @@ func (r *Request) parseRequest(conn net.Conn) error {
 	fullPath := parts[1]
 	path, queryString := splitPathAndQuery(fullPath)
 	queryParams := parseQueryParams(queryString)
-
-	//Content-Type: application/json
-	//Authorization: Bearer xyz
 	headers := make(map[string]string)
 	for {
 		line, err := r.reader.ReadString('\n')

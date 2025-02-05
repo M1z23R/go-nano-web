@@ -128,20 +128,14 @@ func statusText(code int) string {
 }
 
 func (r *Response) Done() {
-	response := fmt.Sprintf("HTTP/1.1 %d %s\r\n%s\r\n", r.Status, statusText(r.Status), strings.Join(r.Headers.Values, "\r\n"))
-	//HTTP/1.1 201 CREATED
-	//Header1:Value
-	//Header2:Value
-	//Header3:Value
+	r.handleSecurityHeaders()
 
-	//We write out response without the body.
+	response := fmt.Sprintf("HTTP/1.1 %d %s\r\n%s\r\n", r.Status, statusText(r.Status), strings.Join(r.Headers.Values, "\r\n"))
 	r.conn.Write([]byte(response))
 
-	//If we have body, we flush contentLength, two new empty lines and then body ([]byte)
 	if r.Body != nil {
 		r.conn.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n\r\n", len(r.Body))))
 		r.conn.Write(r.Body)
-		// If no body, we just flush two new empty lines
 	} else {
 		r.conn.Write([]byte("\r\n\r\n"))
 	}
@@ -179,4 +173,11 @@ func (r *Response) StreamEvents() {
 		}
 	}
 
+}
+func (r *Response) handleSecurityHeaders() {
+	if *&r.Server.SecurityHeaders != nil && *r.Server.SecurityHeaders {
+		r.Headers.Add("X-Content-Type-Options", "nosniff")
+		r.Headers.Add("X-Frame-Options", "DENY")
+		r.Headers.Add("X-XSS-Protection", "1; mode=block")
+	}
 }

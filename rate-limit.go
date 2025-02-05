@@ -34,7 +34,6 @@ func (rl *RateLimiter) Allow(ip string) bool {
 	now := time.Now()
 	cutoff := now.Add(-rl.window)
 
-	// Filter old requests
 	valid := rl.requests[ip][:0]
 	for _, t := range rl.requests[ip] {
 		if t.After(cutoff) {
