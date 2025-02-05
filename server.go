@@ -128,6 +128,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 
 	req := NewRequest()
 	req.MaxRequestSize = s.MaxRequestSize
+	req.conn = &conn
 	err := req.parseRequest(conn)
 	if err != nil {
 		return

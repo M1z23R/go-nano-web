@@ -19,7 +19,7 @@ type Request struct {
 	MaxRequestSize *int64
 	data           map[string]interface{}
 	reader         *bufio.Reader
-	conn           net.Conn
+	conn           *net.Conn
 }
 
 func NewRequest() *Request {

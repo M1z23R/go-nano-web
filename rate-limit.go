@@ -77,7 +77,7 @@ func (rl *RateLimiter) Stop() {
 
 func RateLimitMiddleware(limiter *RateLimiter) Handler {
 	return func(res *Response, req *Request) error {
-		ip := strings.Split(req.conn.RemoteAddr().String(), ":")[0]
+		ip := strings.Split((*req.conn).RemoteAddr().String(), ":")[0]
 		if !limiter.Allow(ip) {
 			res.ApiError(429, "Too Many Requests")
 			return errors.New("rate limit exceeded")
@@ -90,4 +90,3 @@ func RateLimitMiddleware(limiter *RateLimiter) Handler {
 // limiter := NewRateLimiter(100, time.Minute)
 // defer limiter.Stop()
 // server.UseMiddleware(RateLimitMiddleware(limiter))
-
