@@ -13,7 +13,7 @@ func (s *Server) Post(path string, handler Handler, middlewares ...Middleware) {
 		s.Stack = append(s.Stack, m)
 	}
 
-	s.Stack = append(s.Stack, Route{Handler: handler, Method: "POST"})
+	s.Stack = append(s.Stack, Route{Path: path, Handler: handler, Method: "POST"})
 }
 
 func (s *Server) Put(path string, handler Handler, middlewares ...Middleware) {
@@ -21,7 +21,7 @@ func (s *Server) Put(path string, handler Handler, middlewares ...Middleware) {
 		s.Stack = append(s.Stack, m)
 	}
 
-	s.Stack = append(s.Stack, Route{Handler: handler, Method: "PUT"})
+	s.Stack = append(s.Stack, Route{Path: path, Handler: handler, Method: "PUT"})
 }
 
 func (s *Server) Patch(path string, handler Handler, middlewares ...Middleware) {
@@ -29,7 +29,7 @@ func (s *Server) Patch(path string, handler Handler, middlewares ...Middleware) 
 		s.Stack = append(s.Stack, m)
 	}
 
-	s.Stack = append(s.Stack, Route{Handler: handler, Method: "PATCH"})
+	s.Stack = append(s.Stack, Route{Path: path, Handler: handler, Method: "PATCH"})
 }
 
 func (s *Server) Delete(path string, handler Handler, middlewares ...Middleware) {
@@ -37,5 +37,5 @@ func (s *Server) Delete(path string, handler Handler, middlewares ...Middleware)
 		s.Stack = append(s.Stack, m)
 	}
 
-	s.Stack = append(s.Stack, Route{Handler: handler, Method: "DELETE"})
+	s.Stack = append(s.Stack, Route{Path: path, Handler: handler, Method: "DELETE"})
 }
