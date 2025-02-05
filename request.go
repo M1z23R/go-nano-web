@@ -16,7 +16,7 @@ type Request struct {
 	QueryParams    map[string][]string
 	Params         map[string]string
 	Body           *[]byte
-	MaxRequestSize int64
+	MaxRequestSize *int64
 	data           map[string]interface{}
 	reader         *bufio.Reader
 	conn           net.Conn
@@ -29,8 +29,8 @@ func NewRequest() *Request {
 }
 
 func (r *Request) parseRequest(conn net.Conn) error {
-	if r.MaxRequestSize > 0 {
-		r.reader = bufio.NewReaderSize(io.LimitReader(conn, r.MaxRequestSize), 4096)
+	if r.MaxRequestSize != nil && *r.MaxRequestSize > 0 {
+		r.reader = bufio.NewReaderSize(io.LimitReader(conn, *r.MaxRequestSize), 4096)
 	} else {
 		r.reader = bufio.NewReader(conn)
 	}
