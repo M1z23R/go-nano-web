@@ -119,10 +119,10 @@ func (s *Server) acceptLoop() {
 }
 
 func (s *Server) handleConnection(conn net.Conn) {
-	if *s.ReadTimeout > 0 {
+	if s.ReadTimeout != nil && *s.ReadTimeout > 0 {
 		conn.SetReadDeadline(time.Now().Add(*s.ReadTimeout))
 	}
-	if *s.WriteTimeout > 0 {
+	if s.WriteTimeout != nil && *s.WriteTimeout > 0 {
 		conn.SetWriteDeadline(time.Now().Add(*s.WriteTimeout))
 	}
 
