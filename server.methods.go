@@ -1,6 +1,7 @@
 package gonanoweb
 
 func (s *Server) Get(path string, handler Handler, middlewares ...Middleware) {
+	validatePath(path)
 	for _, m := range middlewares {
 		s.Stack = append(s.Stack, m)
 	}
@@ -9,6 +10,7 @@ func (s *Server) Get(path string, handler Handler, middlewares ...Middleware) {
 }
 
 func (s *Server) Post(path string, handler Handler, middlewares ...Middleware) {
+	validatePath(path)
 	for _, m := range middlewares {
 		s.Stack = append(s.Stack, m)
 	}
@@ -17,6 +19,7 @@ func (s *Server) Post(path string, handler Handler, middlewares ...Middleware) {
 }
 
 func (s *Server) Put(path string, handler Handler, middlewares ...Middleware) {
+	validatePath(path)
 	for _, m := range middlewares {
 		s.Stack = append(s.Stack, m)
 	}
@@ -25,6 +28,7 @@ func (s *Server) Put(path string, handler Handler, middlewares ...Middleware) {
 }
 
 func (s *Server) Patch(path string, handler Handler, middlewares ...Middleware) {
+	validatePath(path)
 	for _, m := range middlewares {
 		s.Stack = append(s.Stack, m)
 	}
@@ -33,6 +37,7 @@ func (s *Server) Patch(path string, handler Handler, middlewares ...Middleware) 
 }
 
 func (s *Server) Delete(path string, handler Handler, middlewares ...Middleware) {
+	validatePath(path)
 	for _, m := range middlewares {
 		s.Stack = append(s.Stack, m)
 	}

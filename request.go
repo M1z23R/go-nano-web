@@ -4,19 +4,22 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 )
 
 type Request struct {
-	Method      string
-	Path        string
-	Headers     map[string]string
-	QueryParams map[string][]string
-	Params      map[string]string
-	Body        *[]byte
-	data        map[string]interface{}
-	reader      *bufio.Reader
+	Method         string
+	Path           string
+	Headers        map[string]string
+	QueryParams    map[string][]string
+	Params         map[string]string
+	Body           *[]byte
+	MaxRequestSize int64
+	data           map[string]interface{}
+	reader         *bufio.Reader
+	conn           net.Conn
 }
 
 func NewRequest() *Request {
@@ -26,9 +29,13 @@ func NewRequest() *Request {
 }
 
 func (r *Request) parseRequest(conn net.Conn) error {
-	reader := bufio.NewReader(conn)
+	if r.MaxRequestSize > 0 {
+		r.reader = bufio.NewReaderSize(io.LimitReader(conn, r.MaxRequestSize), 4096)
+	} else {
+		r.reader = bufio.NewReader(conn)
+	}
 
-	line, err := reader.ReadString('\n')
+	line, err := r.reader.ReadString('\n')
 	if err != nil {
 		return nil
 	}
@@ -48,7 +55,7 @@ func (r *Request) parseRequest(conn net.Conn) error {
 	//Authorization: Bearer xyz
 	headers := make(map[string]string)
 	for {
-		line, err := reader.ReadString('\n')
+		line, err := r.reader.ReadString('\n')
 		if err != nil {
 			return err
 		}
@@ -68,7 +75,6 @@ func (r *Request) parseRequest(conn net.Conn) error {
 	r.Path = path
 	r.QueryParams = queryParams
 	r.Headers = headers
-	r.reader = reader
 	return nil
 }
 

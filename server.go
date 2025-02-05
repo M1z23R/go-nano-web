@@ -1,6 +1,7 @@
 package gonanoweb
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -9,20 +10,52 @@ import (
 	"time"
 )
 
-func NewServer(addr string) *Server {
-	return &Server{
+type ServerOptions struct {
+	ReadTimeout    *time.Duration
+	WriteTimeout   *time.Duration
+	CorsOptions    *CorsOptions
+	MaxRequestSize *int64
+	TLSConfig      *tls.Config
+}
+
+type Server struct {
+	addr           string
+	listener       net.Listener
+	Stack          []IStackable
+	EventStreams   map[string]*chan string
+	CorsOptions    *CorsOptions
+	TLSConfig      *tls.Config
+	ReadTimeout    *time.Duration
+	WriteTimeout   *time.Duration
+	MaxRequestSize *int64
+}
+
+func NewServer(addr string, options *ServerOptions) *Server {
+	server := &Server{
 		EventStreams: make(map[string]*chan string),
 		Stack:        []IStackable{},
 		addr:         addr,
 	}
-}
 
-type Server struct {
-	addr         string
-	listener     net.Listener
-	Stack        []IStackable
-	EventStreams map[string]*chan string
-	CorsOptions  *CorsOptions
+	if options != nil {
+		if options.ReadTimeout != nil {
+			server.ReadTimeout = options.ReadTimeout
+		}
+		if options.WriteTimeout != nil {
+			server.WriteTimeout = options.WriteTimeout
+		}
+		if options.CorsOptions != nil {
+			server.CorsOptions = options.CorsOptions
+		}
+		if options.MaxRequestSize != nil {
+			server.MaxRequestSize = options.MaxRequestSize
+		}
+		if options.TLSConfig != nil {
+			server.TLSConfig = options.TLSConfig
+		}
+	}
+
+	return server
 }
 
 func (s *Server) GetStack() []IStackable {
@@ -51,6 +84,25 @@ func (s *Server) Listen() error {
 	return nil
 }
 
+func (s *Server) ListenTLS(certFile, keyFile string) error {
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return err
+	}
+
+	config := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+	}
+
+	ln, err := tls.Listen("tcp", s.addr, config)
+	if err != nil {
+		return err
+	}
+	s.listener = ln
+	return s.Listen()
+}
+
 func (s *Server) acceptLoop() {
 	for {
 		conn, err := s.listener.Accept()
@@ -61,14 +113,16 @@ func (s *Server) acceptLoop() {
 	}
 }
 
-func currentDateString() string {
-	time := time.Now().UTC().Format(time.RFC1123)
-	return "Date: " + time[:len(time)-3] + "GMT"
-}
-
 func (s *Server) handleConnection(conn net.Conn) {
-	req := NewRequest()
+	if *s.ReadTimeout > 0 {
+		conn.SetReadDeadline(time.Now().Add(*s.ReadTimeout))
+	}
+	if *s.WriteTimeout > 0 {
+		conn.SetWriteDeadline(time.Now().Add(*s.WriteTimeout))
+	}
 
+	req := NewRequest()
+	req.MaxRequestSize = *s.MaxRequestSize
 	err := req.parseRequest(conn)
 	if err != nil {
 		return
@@ -83,15 +137,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 	var result []IStackable
 
-	if s.CorsOptions != nil {
-		for _, v := range s.CorsOptions.Origins {
-			if v == req.Headers["origin"] {
-				for k, h := range s.CorsOptions.Headers {
-					res.Headers.Add(k, h)
-				}
-			}
-		}
-	}
+	s.handleCORS(res, req)
 
 	if req.Method == "OPTIONS" {
 		res.Status = 204
@@ -145,10 +191,6 @@ outer:
 	} else {
 		res.Done()
 	}
-}
-
-func removeEmpty(v string) bool {
-	return v == ""
 }
 
 func traverseStackables(req *Request, stackable IStackable, parentPath string, result *[]IStackable, found *bool) {
@@ -212,7 +254,6 @@ func traverseStackables(req *Request, stackable IStackable, parentPath string, r
 			}
 		}
 	}
-
 }
 
 func (s *Server) SendEvent(identifier string, message string) {
@@ -224,9 +265,4 @@ func (s *Server) SendEvent(identifier string, message string) {
 			close(*ch)
 		}
 	}
-}
-
-type ApiError struct {
-	StatusCode int
-	Message    string
 }
