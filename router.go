@@ -21,10 +21,10 @@ func (r *Router) UseRouter(path string, router *Router) {
 	r.Stack = append(r.Stack, router)
 }
 
-func (r *Router) UseMiddleware(handler Handler) {
-	r.Stack = append(r.Stack, Middleware{Handler: handler})
+func (r *Router) UseMiddleware(middleware Middleware) {
+	r.Stack = append(r.Stack, middleware)
 }
 
-func (r *Server) UseMiddleware(handler Handler) {
-	r.Stack = append(r.Stack, Middleware{Handler: handler})
+func (r *Server) UseMiddleware(middleware Middleware) {
+	r.Stack = append(r.Stack, middleware)
 }
