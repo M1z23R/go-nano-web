@@ -5,21 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net"
 	"strings"
 )
 
 type Request struct {
-	Method         string
-	Path           string
-	Headers        map[string]string
-	QueryParams    map[string][]string
-	Params         map[string]string
-	Body           *[]byte
-	MaxRequestSize *int64
-	data           map[string]interface{}
-	reader         *bufio.Reader
-	conn           *net.Conn
+	Method          string
+	Path            string
+	Headers         map[string]string
+	QueryParams     map[string][]string
+	Params          map[string]string
+	Body            *[]byte
+	MaxRequestSize  *int64
+	data            map[string]interface{}
+	reader          *bufio.Reader
+	conn            *net.Conn
+	MultipartReader *multipart.Reader
 }
 
 func NewRequest() *Request {
@@ -139,7 +141,7 @@ func (r *Request) parseBody() error {
 		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 			return err
 		}
-		
+
 		// trim to actual size if we read less than expected
 		if int64(n) < contentLength {
 			body = body[:n]

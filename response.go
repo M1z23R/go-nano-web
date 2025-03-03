@@ -44,7 +44,7 @@ func (r *Response) ApiErrorWithErr(code int, message string, err error) {
 
 	data, _ := json.Marshal(body)
 	r.Body = []byte(data)
-	
+
 	// Log the full error on the server if needed
 	if err != nil {
 		// You could add proper logging here

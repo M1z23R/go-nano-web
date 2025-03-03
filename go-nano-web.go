@@ -1,4 +1,4 @@
-package gonanoweb 
+package gonanoweb
 
 type IStackable interface {
 	GetStack() []IStackable

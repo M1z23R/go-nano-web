@@ -25,7 +25,7 @@ type FormData struct {
 type FormDataOptions struct {
 	MaxMemory       int64  // Maximum size in memory before using temp files
 	MaxFileSize     int64  // Maximum size of individual files
-	TempDir         string // Temporary files Directory 
+	TempDir         string // Temporary files Directory
 	StreamingParser bool   // Whether to enable streaming parser
 }
 
@@ -74,10 +74,8 @@ func FormDataMiddleware(options *FormDataOptions) Middleware {
 					Files:  make(map[string][]*FormFile),
 				}
 
-				err = req.SetData("multipartReader", reader)
-				if err != nil {
-					return err
-				}
+				// Store the multipart reader directly in the Request struct
+				req.MultipartReader = reader
 
 				err = req.SetData("formData", formData)
 				if err != nil {
@@ -169,16 +167,10 @@ func GetFormData(req *Request) (*FormData, error) {
 }
 
 func GetMultipartReader(req *Request) (*multipart.Reader, error) {
-	var readerInterface interface{}
-	err := req.GetData("multipartReader", &readerInterface)
-	if err != nil {
+	// Now directly return the MultipartReader from the Request struct
+	if req.MultipartReader == nil {
 		return nil, errors.New("multipart reader not found in request")
 	}
 
-	reader, ok := readerInterface.(*multipart.Reader)
-	if !ok {
-		return nil, errors.New("invalid multipart reader type")
-	}
-
-	return reader, nil
+	return req.MultipartReader, nil
 }

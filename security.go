@@ -17,16 +17,16 @@ type SecurityOptions struct {
 
 	ContentSecurityPolicy string
 
-	EnableHSTS             bool
-	HSTSMaxAge             int
-	HSTSIncludeSubdomains  bool
-	HSTSPreload            bool
-	EnableNoSniff          bool
-	EnableFrameOptions     bool
-	FrameOptionsPolicy     string
-	EnableXSSProtection    bool
-	ReferrerPolicy         string
-	PermissionsPolicy      string
+	EnableHSTS            bool
+	HSTSMaxAge            int
+	HSTSIncludeSubdomains bool
+	HSTSPreload           bool
+	EnableNoSniff         bool
+	EnableFrameOptions    bool
+	FrameOptionsPolicy    string
+	EnableXSSProtection   bool
+	ReferrerPolicy        string
+	PermissionsPolicy     string
 }
 
 type CookieOptions struct {
@@ -52,14 +52,14 @@ func DefaultSecurityOptions() SecurityOptions {
 			SameSite: http.SameSiteStrictMode,
 		},
 		ContentSecurityPolicy: "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline';",
-		EnableHSTS:           true,
-		HSTSMaxAge:           31536000, // 1 year
+		EnableHSTS:            true,
+		HSTSMaxAge:            31536000, // 1 year
 		HSTSIncludeSubdomains: true,
-		EnableNoSniff:        true,
-		EnableFrameOptions:   true,
-		FrameOptionsPolicy:   "SAMEORIGIN",
-		EnableXSSProtection:  true,
-		ReferrerPolicy:       "strict-origin-when-cross-origin",
+		EnableNoSniff:         true,
+		EnableFrameOptions:    true,
+		FrameOptionsPolicy:    "SAMEORIGIN",
+		EnableXSSProtection:   true,
+		ReferrerPolicy:        "strict-origin-when-cross-origin",
 	}
 }
 
@@ -105,43 +105,43 @@ func SecurityMiddleware(options *SecurityOptions) Middleware {
 				var hsts strings.Builder
 				hsts.WriteString("max-age=")
 				hsts.WriteString(string(rune(options.HSTSMaxAge)))
-				
+
 				if options.HSTSIncludeSubdomains {
 					hsts.WriteString("; includeSubDomains")
 				}
-				
+
 				if options.HSTSPreload {
 					hsts.WriteString("; preload")
 				}
-				
+
 				res.Headers.Add("Strict-Transport-Security", hsts.String())
 			}
 
-			if options.EnableCSRF && (req.Method == "POST" || req.Method == "PUT" || 
+			if options.EnableCSRF && (req.Method == "POST" || req.Method == "PUT" ||
 				req.Method == "PATCH" || req.Method == "DELETE") {
-				
+
 				csrfCookie, hasCookie := req.Headers["cookie"]
 				if !hasCookie {
 					return errors.New("missing CSRF cookie")
 				}
-				
+
 				cookieTokenParts := strings.Split(csrfCookie, options.CSRFCookieName+"=")
 				if len(cookieTokenParts) < 2 {
 					return errors.New("invalid CSRF cookie")
 				}
-				
+
 				cookieToken := strings.Split(cookieTokenParts[1], ";")[0]
-				
+
 				headerToken, hasHeader := req.Headers[strings.ToLower(options.CSRFHeaderName)]
 				if !hasHeader || headerToken == "" {
 					return errors.New("missing CSRF token in header")
 				}
-				
+
 				if cookieToken != headerToken {
 					return errors.New("CSRF token mismatch")
 				}
 			}
-			
+
 			return nil
 		},
 	}
@@ -151,13 +151,13 @@ func GenerateCSRFToken(length int) (string, error) {
 	if length <= 0 {
 		length = 32
 	}
-	
+
 	bytes := make([]byte, length)
 	_, err := rand.Read(bytes)
 	if err != nil {
 		return "", err
 	}
-	
+
 	return base64.URLEncoding.EncodeToString(bytes), nil
 }
 
@@ -172,16 +172,16 @@ func CSRFTokenMiddleware(options *SecurityOptions) Middleware {
 			if !options.EnableCSRF {
 				return nil
 			}
-			
+
 			if req.Method != "GET" {
 				return nil
 			}
-			
+
 			token, err := GenerateCSRFToken(options.CSRFTokenLength)
 			if err != nil {
 				return err
 			}
-			
+
 			cookieOpts := options.CSRFCookieOpts
 			if cookieOpts == nil {
 				cookieOpts = &CookieOptions{
@@ -192,32 +192,32 @@ func CSRFTokenMiddleware(options *SecurityOptions) Middleware {
 					SameSite: http.SameSiteStrictMode,
 				}
 			}
-			
+
 			var cookie strings.Builder
 			cookie.WriteString(options.CSRFCookieName)
 			cookie.WriteString("=")
 			cookie.WriteString(token)
 			cookie.WriteString("; Path=")
 			cookie.WriteString(cookieOpts.Path)
-			
+
 			if cookieOpts.Domain != "" {
 				cookie.WriteString("; Domain=")
 				cookie.WriteString(cookieOpts.Domain)
 			}
-			
+
 			if cookieOpts.MaxAge > 0 {
 				cookie.WriteString("; Max-Age=")
 				cookie.WriteString(string(rune(cookieOpts.MaxAge)))
 			}
-			
+
 			if cookieOpts.Secure {
 				cookie.WriteString("; Secure")
 			}
-			
+
 			if cookieOpts.HttpOnly {
 				cookie.WriteString("; HttpOnly")
 			}
-			
+
 			switch cookieOpts.SameSite {
 			case http.SameSiteLaxMode:
 				cookie.WriteString("; SameSite=Lax")
@@ -226,11 +226,11 @@ func CSRFTokenMiddleware(options *SecurityOptions) Middleware {
 			case http.SameSiteNoneMode:
 				cookie.WriteString("; SameSite=None")
 			}
-			
+
 			res.Headers.Add("Set-Cookie", cookie.String())
-			
+
 			req.SetData("csrfToken", token)
-			
+
 			return nil
 		},
 	}
@@ -242,11 +242,11 @@ func GetCSRFToken(req *Request) (string, error) {
 	if err != nil {
 		return "", errors.New("CSRF token not found in request")
 	}
-	
+
 	token, ok := tokenInterface.(string)
 	if !ok {
 		return "", errors.New("invalid CSRF token type")
 	}
-	
+
 	return token, nil
 }
