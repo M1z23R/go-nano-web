@@ -35,6 +35,23 @@ func (r *Response) ApiError(code int, message string) {
 	r.Body = []byte(data)
 }
 
+func (r *Response) ApiErrorWithErr(code int, message string, err error) {
+	r.Status = code
+	r.Headers.Add("content-type", "application/json")
+	body := map[string]string{
+		"message": message,
+	}
+
+	data, _ := json.Marshal(body)
+	r.Body = []byte(data)
+	
+	// Log the full error on the server if needed
+	if err != nil {
+		// You could add proper logging here
+		// log.Printf("Error: %v", err)
+	}
+}
+
 func (r *Response) Json(status int, body interface{}) {
 	r.Status = status
 	r.Headers.Add("content-type", "application/json")
