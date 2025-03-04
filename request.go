@@ -5,21 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net"
 	"strings"
 )
 
 type Request struct {
-	Method         string
-	Path           string
-	Headers        map[string]string
-	QueryParams    map[string][]string
-	Params         map[string]string
-	Body           *[]byte
-	MaxRequestSize *int64
-	data           map[string]interface{}
-	reader         *bufio.Reader
-	conn           *net.Conn
+	Method          string
+	Path            string
+	Headers         map[string]string
+	QueryParams     map[string][]string
+	Params          map[string]string
+	Body            *[]byte
+	MaxRequestSize  *int64
+	data            map[string]interface{}
+	reader          *bufio.Reader
+	conn            *net.Conn
+	MultipartReader *multipart.Reader
 }
 
 func NewRequest() *Request {
@@ -106,13 +108,43 @@ func parseQueryParams(queryString string) map[string][]string {
 func (r *Request) parseBody() error {
 	var body []byte
 	if length, ok := r.Headers["content-length"]; ok {
-		var contentLength int
-		fmt.Sscanf(length, "%d", &contentLength)
+		var contentLength int64
+		_, err := fmt.Sscanf(length, "%d", &contentLength)
+		if err != nil {
+			return fmt.Errorf("invalid content-length: %w", err)
+		}
+
+		// prevents unreasonable body sizes
+		if r.MaxRequestSize != nil && contentLength > *r.MaxRequestSize {
+			return fmt.Errorf("content length %d exceeds maximum allowed size %d", contentLength, *r.MaxRequestSize)
+		}
+
+		// default size limit if MaxRequestSize not set
+		if r.MaxRequestSize == nil && contentLength > 10*1024*1024 {
+			return fmt.Errorf("content length %d exceeds default maximum size", contentLength)
+		}
+
+		// safe size for int conversion for allocation
+		if contentLength > 2147483647 {
+			return fmt.Errorf("content length too large")
+		}
+
+		// prevent empty allocation
+		if contentLength <= 0 {
+			body = []byte{}
+			r.Body = &body
+			return nil
+		}
 
 		body = make([]byte, contentLength)
-		_, err := r.reader.Read(body)
-		if err != nil {
+		n, err := io.ReadFull(r.reader, body)
+		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 			return err
+		}
+
+		// trim to actual size if we read less than expected
+		if int64(n) < contentLength {
+			body = body[:n]
 		}
 	}
 	r.Body = &body

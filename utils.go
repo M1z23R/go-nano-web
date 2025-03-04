@@ -10,8 +10,19 @@ func validatePath(path string) {
 	if !strings.HasPrefix(path, "/") {
 		log.Panic("path must start with /")
 	}
-	if strings.Contains(path, "..") {
-		log.Panic("path cannot contain ..")
+
+	// Check for path traversal attempts, including URL encoded versions
+	if strings.Contains(path, "..") ||
+		strings.Contains(path, "%2e%2e") ||
+		strings.Contains(path, "%2E%2E") {
+		log.Panic("path cannot contain path traversal sequences")
+	}
+
+	// Prevent control characters and null bytes in paths
+	for _, r := range path {
+		if r < 32 || r == 127 {
+			log.Panic("path contains invalid characters")
+		}
 	}
 }
 
