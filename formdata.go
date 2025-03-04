@@ -62,6 +62,7 @@ func FormDataMiddleware(options *FormDataOptions) Middleware {
 			}
 
 			if req.Body == nil {
+				req.Body = &[]byte{}
 				return errors.New("request body is nil")
 			}
 
