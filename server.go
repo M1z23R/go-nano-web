@@ -30,6 +30,7 @@ type Server struct {
 	WriteTimeout    *time.Duration
 	MaxRequestSize  *int64
 	SecurityHeaders *bool
+	FormDataOptions *FormDataOptions
 }
 
 func NewServer(addr string, options *ServerOptions) *Server {
@@ -127,6 +128,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 
 	req := NewRequest()
+	req.server = s
 	req.MaxRequestSize = s.MaxRequestSize
 	req.conn = &conn
 	err := req.parseRequest(conn)

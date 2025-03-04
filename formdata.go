@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"mime"
 	"mime/multipart"
 	"net/textproto"
-	"strings"
 )
 
 type FormFile struct {
@@ -38,69 +36,6 @@ func DefaultFormDataOptions() FormDataOptions {
 	}
 }
 
-func FormDataMiddleware(options *FormDataOptions) Middleware {
-	if options == nil {
-		defaultOptions := DefaultFormDataOptions()
-		options = &defaultOptions
-	}
-
-	return Middleware{
-		Handler: func(res *Response, req *Request) error {
-			contentType := req.Headers["content-type"]
-			if contentType == "" {
-				return nil
-			}
-
-			mediaType, params, err := mime.ParseMediaType(contentType)
-			if err != nil || !strings.HasPrefix(mediaType, "multipart/form-data") {
-				return nil
-			}
-
-			boundary, ok := params["boundary"]
-			if !ok {
-				return errors.New("invalid multipart boundary")
-			}
-
-			if req.Body == nil {
-				req.Body = &[]byte{}
-				//return errors.New("request body is nil")
-			}
-
-			bodyReader := bytes.NewReader(*req.Body)
-			reader := multipart.NewReader(bodyReader, boundary)
-
-			if options.StreamingParser {
-				formData := &FormData{
-					Fields: make(map[string][]string),
-					Files:  make(map[string][]*FormFile),
-				}
-
-				// Store the multipart reader directly in the Request struct
-				req.MultipartReader = reader
-
-				err = req.SetData("formData", formData)
-				if err != nil {
-					return err
-				}
-
-				return nil
-			} else {
-				formData, err := parseEntireForm(reader, options)
-				if err != nil {
-					return err
-				}
-
-				err = req.SetData("formData", formData)
-				if err != nil {
-					return err
-				}
-
-				return nil
-			}
-		},
-	}
-}
-
 func parseEntireForm(reader *multipart.Reader, options *FormDataOptions) (*FormData, error) {
 	formData := &FormData{
 		Fields: make(map[string][]string),
@@ -123,7 +58,6 @@ func parseEntireForm(reader *multipart.Reader, options *FormDataOptions) (*FormD
 
 		filename := part.FileName()
 		if filename != "" {
-			// This is a file upload
 			var buffer bytes.Buffer
 			size, err := io.CopyN(&buffer, part, options.MaxFileSize+1)
 			if err != nil && err != io.EOF {

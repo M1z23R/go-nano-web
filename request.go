@@ -9,11 +9,8 @@ import (
 	"mime"
 	"mime/multipart"
 	"net"
-	"net/textproto"
 	"strings"
 )
-
-// We use the FormDataOptions, FormFile, and FormData types from formdata.go
 
 type Request struct {
 	Method          string
@@ -22,10 +19,12 @@ type Request struct {
 	QueryParams     map[string][]string
 	Params          map[string]string
 	Body            *[]byte
+	FormData        *FormData
 	MaxRequestSize  *int64
 	data            map[string]interface{}
 	reader          *bufio.Reader
 	conn            *net.Conn
+	server          *Server
 	MultipartReader *multipart.Reader
 }
 
@@ -119,22 +118,18 @@ func (r *Request) parseBody() error {
 			return fmt.Errorf("invalid content-length: %w", err)
 		}
 
-		// prevents unreasonable body sizes
 		if r.MaxRequestSize != nil && contentLength > *r.MaxRequestSize {
 			return fmt.Errorf("content length %d exceeds maximum allowed size %d", contentLength, *r.MaxRequestSize)
 		}
 
-		// default size limit if MaxRequestSize not set
 		if r.MaxRequestSize == nil && contentLength > 10*1024*1024 {
 			return fmt.Errorf("content length %d exceeds default maximum size", contentLength)
 		}
 
-		// safe size for int conversion for allocation
 		if contentLength > 2147483647 {
 			return fmt.Errorf("content length too large")
 		}
 
-		// prevent empty allocation
 		if contentLength <= 0 {
 			body = []byte{}
 			r.Body = &body
@@ -159,9 +154,13 @@ func (r *Request) parseBody() error {
 		if err == nil && strings.HasPrefix(mediaType, "multipart/form-data") {
 			boundary, ok := params["boundary"]
 			if ok {
-				// Use default options from formdata.go
-				defaultOptions := DefaultFormDataOptions()
-				options := &defaultOptions
+				var options *FormDataOptions
+				if r.server.FormDataOptions == nil {
+					defaultOptions := DefaultFormDataOptions()
+					options = &defaultOptions
+				} else {
+					options = r.server.FormDataOptions
+				}
 
 				bodyReader := bytes.NewReader(*r.Body)
 				reader := multipart.NewReader(bodyReader, boundary)
@@ -171,10 +170,7 @@ func (r *Request) parseBody() error {
 					return err
 				}
 
-				err = r.SetData("formData", formData)
-				if err != nil {
-					return err
-				}
+				r.FormData = formData
 			}
 		}
 	}
