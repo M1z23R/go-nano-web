@@ -151,27 +151,3 @@ func parseEntireForm(reader *multipart.Reader, options *FormDataOptions) (*FormD
 
 	return formData, nil
 }
-
-func GetFormData(req *Request) (*FormData, error) {
-	var formDataInterface interface{}
-	err := req.GetData("formData", &formDataInterface)
-	if err != nil {
-		return nil, errors.New("form data not found in request")
-	}
-
-	formData, ok := formDataInterface.(*FormData)
-	if !ok {
-		return nil, errors.New("invalid form data type")
-	}
-
-	return formData, nil
-}
-
-func GetMultipartReader(req *Request) (*multipart.Reader, error) {
-	// Now directly return the MultipartReader from the Request struct
-	if req.MultipartReader == nil {
-		return nil, errors.New("multipart reader not found in request")
-	}
-
-	return req.MultipartReader, nil
-}

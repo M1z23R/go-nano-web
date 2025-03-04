@@ -2,13 +2,18 @@ package gonanoweb
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net"
+	"net/textproto"
 	"strings"
 )
+
+// We use the FormDataOptions, FormFile, and FormData types from formdata.go
 
 type Request struct {
 	Method          string
@@ -142,12 +147,37 @@ func (r *Request) parseBody() error {
 			return err
 		}
 
-		// trim to actual size if we read less than expected
 		if int64(n) < contentLength {
 			body = body[:n]
 		}
 	}
 	r.Body = &body
+
+	contentType := r.Headers["content-type"]
+	if contentType != "" {
+		mediaType, params, err := mime.ParseMediaType(contentType)
+		if err == nil && strings.HasPrefix(mediaType, "multipart/form-data") {
+			boundary, ok := params["boundary"]
+			if ok {
+				// Use default options from formdata.go
+				defaultOptions := DefaultFormDataOptions()
+				options := &defaultOptions
+
+				bodyReader := bytes.NewReader(*r.Body)
+				reader := multipart.NewReader(bodyReader, boundary)
+
+				formData, err := parseEntireForm(reader, options)
+				if err != nil {
+					return err
+				}
+
+				err = r.SetData("formData", formData)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
 
 	return nil
 }
